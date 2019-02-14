@@ -1,5 +1,5 @@
 from util.Queue import DownloadQueue, PlayQueue
-
+from queue import Empty
 from downloader.NeteaseMusic import NeteaseMusic
 from service.Service import Service
 from util.Danmu import Danmu
@@ -15,17 +15,15 @@ class DownloadService(Service):
     # 获取下载队列 分发至下载函数
     def run(self):
         try:
-            # 判断队列是否为空
-            if DownloadQueue.empty():
-                return
-            
             # 获取新的下载任务
-            task = DownloadQueue.get()
+            task = DownloadQueue.get(timeout=1)
             if task and 'type' in task:
                 if task['type'] == 'music':
                     self.musicDownload(task)
                 elif task['type'] == 'vedio':
                     pass
+        except Empty as ee:
+            pass
         except Exception as e:
             self.log.error(e)
             pass
