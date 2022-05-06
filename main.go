@@ -2,6 +2,7 @@ package main
 
 import (
 	"blive/src/services"
+	"encoding/json"
 	"fmt"
 	"sync"
 )
@@ -9,23 +10,17 @@ import (
 var wg sync.WaitGroup
 
 func main() {
-	danmuChannel := make(chan string, 10)
+	danmuChannel := make(chan services.DanmuCommand, 10)
+	musicChannel := make(chan string, 500)
+	handleCommand(&danmuChannel, &musicChannel)
 
-	danmuService := services.NewDanmuService(1017, &danmuChannel)
+	danmuService := services.NewDanmuService(35724, &danmuChannel)
 	go danmuService.Start()
 	wg.Add(1)
 	defer danmuService.Close()
 
-	go func() {
-		for {
-			i, ok := <-danmuChannel
-			if !ok {
-				fmt.Printf("test: false")
-				break
-			}
-			fmt.Printf("test: %s\n", i)
-		}
-	}()
+	musicService := services.NewMusicService(&musicChannel)
+	go musicService.Start()
 
 	wg.Wait()
 
@@ -44,4 +39,22 @@ func main() {
 	//command.Stdout = os.Stdout
 	//command.Stderr = os.Stderr
 	//command.Run()
+}
+
+func handleCommand(danmuChannel *chan services.DanmuCommand, musicChannel *chan string) {
+	go func() {
+		for {
+			command, ok := <-*danmuChannel
+			if !ok {
+				fmt.Printf("test: false")
+				break
+			}
+			commandJson, _ := json.Marshal(command)
+			fmt.Printf("收到指令: %s\n", commandJson)
+
+			if command.CommandName == "点歌" {
+				*musicChannel <- command.Arg1
+			}
+		}
+	}()
 }
