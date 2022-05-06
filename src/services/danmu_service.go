@@ -48,14 +48,14 @@ func (d *DanmuService) Close() {
 
 func danmuHandler(danmuChannel *chan DanmuCommand) websocket.DanmakuHandler {
 	return func(danmu *dto.Danmaku) {
-		danmuCommandStrings := strings.Split(danmu.Content, " ")
+		danmuCommandStrings := strings.Split(strings.Trim(danmu.Content, " "), " ")
 		if len(danmuCommandStrings) >= 2 {
 			*danmuChannel <- DanmuCommand{
 				SenderId:    danmu.UID,
 				SenderName:  danmu.Uname,
 				SourceDanmu: danmu.Content,
-				CommandName: danmuCommandStrings[0],
-				Arg1:        danmuCommandStrings[1],
+				CommandName: strings.Trim(danmuCommandStrings[0], " "),
+				Arg1:        strings.Trim(danmuCommandStrings[1], " "),
 				Args:        danmuCommandStrings[1:],
 			}
 		}
