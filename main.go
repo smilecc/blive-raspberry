@@ -1,28 +1,31 @@
 package main
 
 import (
+	"blive/src/database"
+	"blive/src/routers"
 	"blive/src/services"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"github.com/gofiber/fiber/v2"
+	"log"
 )
 
-var wg sync.WaitGroup
-
 func main() {
+	database.Connect()
+	app := fiber.New()
 	danmuChannel := make(chan services.DanmuCommand, 10)
 	musicChannel := make(chan string, 500)
 	handleCommand(&danmuChannel, &musicChannel)
 
 	danmuService := services.NewDanmuService(35724, &danmuChannel)
 	go danmuService.Start()
-	wg.Add(1)
-	defer danmuService.Close()
+	//defer danmuService.Close()
 
 	musicService := services.NewMusicService(&musicChannel)
 	go musicService.Start()
 
-	wg.Wait()
+	routers.AppRouter(app)
+	log.Fatal(app.Listen(":18000"))
 
 	//file, err := os.OpenFile("D:\\Temp\\test\\a\\a.bat", os.O_CREATE, 0777)
 	//if err != nil {
