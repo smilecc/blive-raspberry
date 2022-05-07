@@ -1,21 +1,37 @@
 <script setup lang="ts">
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
-import HelloWorld from './components/HelloWorld.vue'
+import { NConfigProvider, NMessageProvider, zhCN } from "naive-ui";
+import Navbar from "@/components/Navbar.vue";
 </script>
 
 <template>
-  <img alt="Vue logo" src="./assets/logo.png" />
-  <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
+  <NConfigProvider :locale="zhCN">
+    <NMessageProvider>
+      <div
+        class="dark:bg-dark-background relative flex h-full flex-row bg-white text-xl text-black dark:text-white"
+      >
+        <Navbar />
+        <main class="min-h-screen flex-grow bg-gray-50">
+          <div className="flex flex-shrink">
+            <div className="w-full sm:w-main pb-20 sm:pb-0">
+              <router-view />
+            </div>
+            <div className="hidden xl:block w-right-bar"></div>
+          </div>
+        </main>
+      </div>
+    </NMessageProvider>
+  </NConfigProvider>
 </template>
 
+<style scoped>
+.content {
+  width: 860px;
+  margin: 0 auto;
+}
+</style>
+
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+.n-thing-header__title {
+  font-weight: bold !important;
 }
 </style>

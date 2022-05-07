@@ -1,4 +1,10 @@
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from "vue";
+import App from "./App.vue";
+import { Router } from "./routes";
+import "./main.css";
 
-createApp(App).mount('#app')
+const meta = document.createElement("meta");
+meta.name = "naive-ui-style";
+document.head.appendChild(meta);
+
+createApp(App).use(Router).mount("#app");

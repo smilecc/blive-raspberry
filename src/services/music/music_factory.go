@@ -6,6 +6,7 @@ type (
 		Name      string
 		Url       string
 		LocalPath string
+		Lrc       string
 	}
 )
 
@@ -21,7 +22,7 @@ type IMusicService interface {
 func GetMusicService(service int) IMusicService {
 	switch service {
 	case NeteaseService:
-		return &NeteaseMusicService{}
+		return NewNeteaseMusicService()
 	default:
 		return nil
 	}

@@ -17,9 +17,8 @@ func main() {
 	musicChannel := make(chan string, 500)
 	handleCommand(&danmuChannel, &musicChannel)
 
-	danmuService := services.NewDanmuService(35724, &danmuChannel)
-	go danmuService.Start()
-	//defer danmuService.Close()
+	danmuService := services.NewDanmuService(&danmuChannel)
+	services.CurrentDanmuService = &danmuService
 
 	musicService := services.NewMusicService(&musicChannel)
 	go musicService.Start()

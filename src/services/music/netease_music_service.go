@@ -1,6 +1,7 @@
 package music
 
 import (
+	"blive/src/database"
 	"encoding/json"
 	"fmt"
 	"github.com/botplayerneo/bili-live-api/log"
@@ -9,7 +10,10 @@ import (
 	"strconv"
 )
 
-type NeteaseMusicService struct{}
+type NeteaseMusicService struct {
+	ApiHost string
+	cookie  string
+}
 
 type (
 	NeteaseMusicData[T interface{}] struct {
@@ -31,20 +35,40 @@ type (
 	}
 )
 
+func NewNeteaseMusicService() *NeteaseMusicService {
+	service := &NeteaseMusicService{}
+	var configs []database.SysConfig
+	database.DB.Where("name = 'netease_api_host'").Find(&configs)
+	if len(configs) == 0 {
+		service.ApiHost = "https://netease-cloud-music-api-ochre-one.vercel.app"
+	} else {
+		service.ApiHost = configs[0].Value
+	}
+
+	database.DB.Where("name = 'netease_cookie'").Find(&configs)
+	if len(configs) == 0 {
+		service.cookie = ""
+	} else {
+		service.cookie = configs[0].Value
+	}
+
+	return service
+}
+
 func (n *NeteaseMusicService) GetSongById(id string) (*SongDetail, error) {
-	return getMusic(id)
+	return n.getMusic(id)
 }
 
 func (n *NeteaseMusicService) GetSongByName(name string) (*SongDetail, error) {
-	return getMusic(name)
+	return n.getMusic(name)
 }
 
 //getMusic 通过ID或名称查询音乐
-func getMusic(name string) (*SongDetail, error) {
-	searchResult := searchMusic(name)
+func (n *NeteaseMusicService) getMusic(name string) (*SongDetail, error) {
+	searchResult := n.searchMusic(name)
 	if searchResult.Result.SongCount > 0 {
 		firstSong := searchResult.Result.Songs[0]
-		song, err := getMusicById(firstSong.Id, &firstSong)
+		song, err := n.getMusicById(firstSong.Id, &firstSong)
 
 		if err != nil {
 			return nil, err
@@ -58,9 +82,14 @@ func getMusic(name string) (*SongDetail, error) {
 }
 
 //searchMusic 通过关键词搜索音乐
-func searchMusic(keyword string) *NeteaseMusicData[NeteaseMusicSearch] {
+func (n *NeteaseMusicService) searchMusic(keyword string) *NeteaseMusicData[NeteaseMusicSearch] {
 	result := &NeteaseMusicData[NeteaseMusicSearch]{}
-	resp, err := req.R().SetResult(&result).Get(fmt.Sprintf("https://netease-cloud-music-api-ochre-one.vercel.app/search?keywords=%s", keyword))
+	resp, err := req.R().
+		SetResult(&result).
+		SetQueryParam("cookie", n.cookie).
+		SetQueryParam("keywords", keyword).
+		Get(fmt.Sprintf("%s/search", n.ApiHost))
+
 	if err != nil && resp != nil {
 		return nil
 	}
@@ -71,10 +100,10 @@ func searchMusic(keyword string) *NeteaseMusicData[NeteaseMusicSearch] {
 }
 
 //getMusicById 通过ID查询音乐
-func getMusicById(id int, searchSong *NeteaseMusicSearchSong) (*SongDetail, error) {
+func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearchSong) (*SongDetail, error) {
 	// 如果没有查询过音乐 则先查询
 	if searchSong == nil {
-		searchResult := searchMusic(strconv.Itoa(id))
+		searchResult := n.searchMusic(strconv.Itoa(id))
 		if searchResult.Result.SongCount > 0 {
 			searchSong = &searchResult.Result.Songs[0]
 		}
@@ -82,7 +111,12 @@ func getMusicById(id int, searchSong *NeteaseMusicSearchSong) (*SongDetail, erro
 
 	// 通过ID查询音乐链接
 	result := &NeteaseMusicData[[]NeteaseMusicSong]{}
-	_, err := req.R().SetResult(&result).Get(fmt.Sprintf("https://netease-cloud-music-api-ochre-one.vercel.app/song/url?id=%d&br=320000", id))
+	_, err := req.R().
+		SetResult(&result).
+		SetQueryParam("id", strconv.Itoa(id)).
+		SetQueryParam("br", "320000").
+		SetQueryParam("cookie", n.cookie).
+		Get(fmt.Sprintf("%s/song/url", n.ApiHost))
 	if err != nil {
 		return nil, err
 	}

@@ -2,16 +2,19 @@ package services
 
 import (
 	"blive/src/utils"
-	"fmt"
 	"github.com/botplayerneo/bili-live-api/dto"
+	"github.com/botplayerneo/bili-live-api/log"
 	"github.com/botplayerneo/bili-live-api/websocket"
 	"strings"
 	"sync"
 )
 
 var wg sync.WaitGroup
+var CurrentDanmuService *DanmuService
 
 type DanmuService struct {
+	RoomId       int
+	listening    bool
 	blive        *utils.Live
 	danmuChannel *chan DanmuCommand
 }
@@ -25,12 +28,19 @@ type DanmuCommand struct {
 	Args        []string
 }
 
-func NewDanmuService(roomId int, danmuChannel *chan DanmuCommand) DanmuService {
-	service := DanmuService{utils.NewBLive(roomId), danmuChannel}
+func NewDanmuService(danmuChannel *chan DanmuCommand) DanmuService {
+	service := DanmuService{0, false, nil, danmuChannel}
 	return service
 }
 
 func (d *DanmuService) Start() {
+	if d.listening {
+		return
+	}
+
+	log.Info("开始监听直播间弹幕")
+	d.listening = true
+	d.blive = utils.NewBLive(d.RoomId)
 	wg.Add(1)
 	go func() {
 		d.blive.RegisterHandlers(
@@ -39,11 +49,15 @@ func (d *DanmuService) Start() {
 		d.blive.Start()
 	}()
 	wg.Wait()
+	d.listening = false
 }
 
 func (d *DanmuService) Close() {
-	d.blive.Close()
-	wg.Done()
+	if d.listening {
+		d.blive.Close()
+		wg.Done()
+		log.Info("停止监听直播间弹幕")
+	}
 }
 
 func danmuHandler(danmuChannel *chan DanmuCommand) websocket.DanmakuHandler {
@@ -60,9 +74,6 @@ func danmuHandler(danmuChannel *chan DanmuCommand) websocket.DanmakuHandler {
 			}
 		}
 
-		fmt.Printf("%s:%s\n",
-			danmu.Uname,
-			danmu.Content,
-		)
+		log.Infof("收到弹幕：%s:%s", danmu.Uname, danmu.Content)
 	}
 }

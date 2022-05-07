@@ -11,3 +11,7 @@ func SuccessResult[T interface{}](data T) ApiResult[T] {
 		Data: data,
 	}
 }
+
+func PureSuccessResult() ApiResult[*interface{}] {
+	return SuccessResult[*interface{}](nil)
+}
