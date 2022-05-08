@@ -42,7 +42,8 @@ func getMp3Duration(filename string) int {
 func StartEncode(encodeChannel *chan music.SongDetail) {
 	// 创建临时文件夹
 	ch = make(chan string, 1000)
-	encodePath := path.Join(os.TempDir(), "blive_encode")
+	homeDir, _ := os.UserHomeDir()
+	encodePath := path.Join(homeDir, "blive_tmp/blive_encode")
 	_ = os.MkdirAll(encodePath, os.ModePerm)
 	log.Info(encodePath)
 
@@ -79,7 +80,11 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		}
 
 		// 构建渲染命令
-		file, err := os.OpenFile(path.Join(songPath, "command.bat"), os.O_CREATE, 0777)
+		shellName := "command.bat"
+		if runtime.GOOS != "windows" {
+			shellName = "command.sh"
+		}
+		file, err := os.OpenFile(path.Join(songPath, shellName), os.O_CREATE, 0777)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -100,9 +105,9 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		var command *exec.Cmd
 		if //goland:noinspection GoBoolExpressions
 		runtime.GOOS == "windows" {
-			command = exec.Command("cmd", "/c", "command.bat")
+			command = exec.Command("cmd", "/c", shellName)
 		} else {
-			command = exec.Command("sh", "-c", "command.bat")
+			command = exec.Command("sh", "-c", shellName)
 		}
 
 		command.Dir = songPath

@@ -7,6 +7,7 @@ import (
 	"github.com/botplayerneo/bili-live-api/log"
 	"github.com/imroc/req/v3"
 	"os"
+	"path"
 	"strconv"
 )
 
@@ -131,7 +132,9 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		log.Infof("获取到音乐歌词 Id: %d Lrc: %s", id, lrcJson)
 	}
 
-	dir := os.TempDir()
+	dir, _ := os.UserHomeDir()
+	dir = path.Join(dir, "blive_tmp/blive_music")
+	_ = os.MkdirAll(dir, os.ModePerm)
 	fileName := fmt.Sprintf("/music/%d.mp3", id)
 	savePath := fmt.Sprintf("%s%s", dir, fileName)
 
