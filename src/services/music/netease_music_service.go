@@ -135,11 +135,11 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 	dir, _ := os.UserHomeDir()
 	dir = path.Join(dir, "blive_tmp/blive_music")
 	_ = os.MkdirAll(dir, os.ModePerm)
-	fileName := fmt.Sprintf("%s/%d.mp3", dir, id)
-	savePath := fmt.Sprintf("%s%s", dir, fileName)
+	fileName := fmt.Sprintf("%d.mp3", id)
+	savePath := path.Join(dir, "/", fileName)
 
 	if _, err := os.Stat(savePath); err == nil {
-		log.Infof("歌曲存在跳过下载 Id: %s", id)
+		log.Infof("歌曲存在跳过下载 Id: %d", id)
 		return &SongDetail{
 			Id:        strconv.Itoa(id),
 			Url:       "",
@@ -168,10 +168,10 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 
 	music := result.Data[0]
 
-	log.Infof("开始下载音乐 Id: %d Path: %s%s", id, dir, fileName)
+	log.Infof("开始下载音乐 Id: %d Path: %s", id, savePath)
 	// 下载音乐文件
 	client := req.C().SetOutputDirectory(dir)
-	_, err = client.R().SetOutputFile(fileName).Get(music.Url)
+	_, err = client.R().SetOutputFile(savePath).Get(music.Url)
 	if err != nil {
 		log.Error(err)
 		return nil, err
