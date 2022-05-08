@@ -116,9 +116,38 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		}
 	}
 
+	// 查询歌词
+	lrcResult := &NeteaseMusicLrc{}
+	_, err := req.R().
+		SetResult(&lrcResult).
+		SetQueryParam("id", strconv.Itoa(id)).
+		SetQueryParam("cookie", n.cookie).
+		Get(fmt.Sprintf("%s/lyric", n.ApiHost))
+
+	lrc := ""
+	if lrcResult.Code == 200 {
+		lrc = lrcResult.Lrc.Lyric
+		lrcJson, _ := json.Marshal(lrcResult.Lrc)
+		log.Infof("获取到音乐歌词 Id: %d Lrc: %s", id, lrcJson)
+	}
+
+	dir := os.TempDir()
+	fileName := fmt.Sprintf("/music/%d.mp3", id)
+	savePath := fmt.Sprintf("%s%s", dir, fileName)
+
+	if _, err := os.Stat(savePath); err == nil {
+		log.Infof("歌曲存在跳过下载 Id: %s", id)
+		return &SongDetail{
+			Id:        strconv.Itoa(id),
+			Url:       "",
+			LocalPath: savePath,
+			Lrc:       lrc,
+		}, nil
+	}
+
 	// 通过ID查询音乐链接
 	result := &NeteaseMusicData[[]NeteaseMusicSong]{}
-	_, err := req.R().
+	_, err = req.R().
 		SetResult(&result).
 		SetQueryParam("id", strconv.Itoa(id)).
 		SetQueryParam("br", "320000").
@@ -134,23 +163,7 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		return nil, err
 	}
 
-	lrcResult := &NeteaseMusicLrc{}
-	_, err = req.R().
-		SetResult(&lrcResult).
-		SetQueryParam("id", strconv.Itoa(id)).
-		SetQueryParam("cookie", n.cookie).
-		Get(fmt.Sprintf("%s/lyric", n.ApiHost))
-
-	lrc := ""
-	if lrcResult.Code == 200 {
-		lrc = lrcResult.Lrc.Lyric
-		lrcJson, _ := json.Marshal(lrcResult.Lrc)
-		log.Infof("获取到音乐歌词 Id: %d Lrc: %s", id, lrcJson)
-	}
-
 	music := result.Data[0]
-	dir := os.TempDir()
-	fileName := fmt.Sprintf("/music/%d.mp3", id)
 
 	log.Infof("开始下载音乐 Id: %d Path: %s%s", id, dir, fileName)
 	// 下载音乐文件
@@ -165,7 +178,7 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 	return &SongDetail{
 		Id:        strconv.Itoa(id),
 		Url:       music.Url,
-		LocalPath: fmt.Sprintf("%s%s", dir, fileName),
+		LocalPath: savePath,
 		Lrc:       lrc,
 	}, nil
 }

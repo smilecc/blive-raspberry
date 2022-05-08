@@ -1,8 +1,11 @@
 package services
 
 import (
+	"blive/src/database"
+	"blive/src/entities"
 	"blive/src/services/music"
 	"blive/src/utils"
+	"encoding/json"
 	"fmt"
 	"github.com/botplayerneo/bili-live-api/log"
 	"github.com/gobuffalo/packr/v2"
@@ -17,6 +20,9 @@ import (
 )
 
 var CurrentVideoService *VideoService
+var ch chan string
+var DefaultMusic string = "1937717747"
+var defaultMusicVideoPath string
 
 func getMp3Duration(filename string) int {
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0777)
@@ -32,9 +38,6 @@ func getMp3Duration(filename string) int {
 	}
 	return int(d.Length() / 4 / int64(d.SampleRate()))
 }
-
-var ch chan string
-var DefaultMusic string = "354352"
 
 func StartEncode(encodeChannel *chan music.SongDetail) {
 	// 创建临时文件夹
@@ -66,6 +69,10 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 
 		outPath := path.Join(songPath, "output.flv")
 		if _, err := os.Stat(outPath); err == nil {
+			if song.Id == DefaultMusic {
+				defaultMusicVideoPath = outPath
+			}
+
 			log.Infof("歌曲存在跳过渲染 Id: %s Name: %s", song.Id, song.Name)
 			ch <- outPath
 			continue
@@ -79,11 +86,11 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		}
 
 		_ = file.Truncate(0)
-		musicDuration := getMp3Duration(song.LocalPath)
+		musicDuration := getMp3Duration(song.LocalPath) + 3
 
 		_, _ = file.WriteString(
 			fmt.Sprintf(
-				"ffmpeg -thread_queue_size 24 -loop 1 -r 24 -t %d -f image2 -i 1.jpg -i 1.mp3 -vf ass=\"1.ass\" -s 1280x720 -pix_fmt yuvj422p -crf 28 -preset ultrafast -maxrate 2000k -bufsize 400000 -acodec aac -b:a 128k -c:v h264 -f flv output.flv -y",
+				"ffmpeg -thread_queue_size 256 -loop 1 -r 24 -t %d -f image2 -i 1.jpg -i 1.mp3 -vf ass=\"1.ass\" -s 1280x720 -pix_fmt yuvj422p -crf 28 -preset ultrafast -maxrate 2000k -bufsize 400000 -acodec aac -af \"apad=pad_dur=3\" -b:a 128k -c:v h264 -f flv output.flv -y",
 				musicDuration,
 			),
 		)
@@ -106,6 +113,9 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 
 		// 通知给直播通道
 		log.Infof("歌曲渲染完毕 Id: %s Name: %s Path: %s", song.Id, song.Name, outPath)
+		if song.Id == DefaultMusic {
+			defaultMusicVideoPath = outPath
+		}
 		ch <- outPath
 	}
 }
@@ -115,44 +125,90 @@ type VideoService struct {
 }
 
 func NewVideoService() VideoService {
-	return VideoService{
-		rtmp.NewPushSession(func(option *rtmp.PushSessionOption) {
-			option.PushTimeoutMs = 0
-			option.WriteAvTimeoutMs = 0
-			option.WriteBufSize = 0
-			option.WriteChanSize = 0
-		}),
-	}
+	return VideoService{nil}
 }
 
 func (v *VideoService) StartLiveStream() {
-	err := v.ps.Push("rtmp://live-push.bilivideo.com/live-bvc/?streamname=live_927293_332_c521e483&key=71e3bf02c3502e40750dec010e364bee&schedule=rtmp&pflag=1")
+	v.ps = rtmp.NewPushSession(func(option *rtmp.PushSessionOption) {
+		option.PushTimeoutMs = 10000
+		option.WriteAvTimeoutMs = 0
+		option.WriteBufSize = 2000
+		option.WriteChanSize = 128
+	})
+
+	var configs []database.SysConfig
+	var rtmpUrl string
+	database.DB.Where("name = 'live_room'").Find(&configs)
+	if len(configs) > 0 {
+		liveRoom := entities.LiveRoom{}
+		_ = json.Unmarshal([]byte(configs[0].Value), &liveRoom)
+		rtmpUrl = fmt.Sprintf("%s%s", liveRoom.LiveUrl, liveRoom.LivePassword)
+	}
+	if len(configs) == 0 || rtmpUrl == "" {
+		log.Error("无直播间配置，无法启动直播")
+		return
+	}
+
+	err := v.ps.Push(rtmpUrl)
 	if err != nil {
 		return
 	}
+
+	flvFilePump := utils.NewFlvFilePump(func(option *utils.FlvFilePumpOption) {
+		option.IsRecursive = false
+	})
+	defaultTags, _ := httpflv.ReadAllTagsFromFlvFile(defaultMusicVideoPath)
+	var currentTags []*[]httpflv.Tag
 
 	go func() {
 		for {
 			url := <-ch
 			fmt.Println(url)
-			flvFilePump := httpflv.NewFlvFilePump(func(option *httpflv.FlvFilePumpOption) {
-				option.IsRecursive = false
-			})
-
 			tags, _ := httpflv.ReadAllTagsFromFlvFile(url)
-			flvFilePump.PumpWithTags(tags, func(tag httpflv.Tag) bool {
-				chunks := remux.FlvTag2RtmpChunks(tag)
-				err := v.ps.Write(chunks)
-				if err != nil {
-					return false
-				}
-				return true
-			})
+			currentTags = append([]*[]httpflv.Tag{&tags}, currentTags...)
 		}
 	}()
+
+	go func() {
+		flvFilePump.PumpWithTags(func(tag httpflv.Tag) bool {
+			chunks := remux.FlvTag2RtmpChunks(tag)
+			err := v.ps.Write(chunks)
+			if err != nil {
+				return false
+			}
+
+			if !CurrentDanmuService.listening {
+				return true
+			}
+			return true
+		}, func() *[]httpflv.Tag {
+			if len(currentTags) == 0 {
+				return &defaultTags
+			}
+
+			return currentTags[0]
+		})
+	}()
+
+	//go func() {
+	//	for {
+	//		if currentTags != nil {
+	//			continue
+	//		}
+	//
+	//		tags := <-tagChan
+	//		currentTags = &tags
+	//
+	//		if !CurrentDanmuService.listening {
+	//			break
+	//		}
+	//	}
+	//}()
 
 	_ = <-v.ps.WaitChan()
 }
 func (v *VideoService) StopLiveStream() {
-	v.ps.Dispose()
+	if v.ps != nil {
+		_ = v.ps.Dispose()
+	}
 }
