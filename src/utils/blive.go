@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
-
 	jsoniter "github.com/json-iterator/go"
+	"io/ioutil"
 
 	"github.com/botplayerneo/bili-live-api/dto"
 	"github.com/botplayerneo/bili-live-api/log"
@@ -45,6 +45,11 @@ func (l *Live) Start() error {
 }
 
 func (l *Live) Close() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warn(r)
+		}
+	}()
 	l.client.Close()
 }
 
@@ -76,4 +81,28 @@ func (l *Live) enterRoom(id int) {
 		log.Errorf("发送进入房间请求失败：%v", err)
 		return
 	}
+}
+
+func CopyFile(source, dist string) error {
+	bytesRead, err := ioutil.ReadFile(source)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	//Copy all the contents to the desitination file
+	err = ioutil.WriteFile(dist, bytesRead, 0755)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
+}
+
+func SaveBytesToFile(bytes []byte, dist string) error {
+	err := ioutil.WriteFile(dist, bytes, 0755)
+	if err != nil {
+		return err
+	}
+	return nil
 }

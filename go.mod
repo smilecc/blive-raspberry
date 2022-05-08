@@ -6,9 +6,12 @@ require (
 	github.com/botplayerneo/bili-live-api v0.1.0
 	github.com/gobuffalo/packr/v2 v2.8.3
 	github.com/gofiber/fiber/v2 v2.33.0
+	github.com/hajimehoshi/go-mp3 v0.3.3
 	github.com/imroc/req/v3 v3.11.0
 	github.com/json-iterator/go v1.1.12
 	github.com/q191201771/lal v0.29.1
+	gorm.io/driver/sqlite v1.3.2
+	gorm.io/gorm v1.23.5
 )
 
 require (
@@ -38,6 +41,4 @@ require (
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	gorm.io/driver/sqlite v1.3.2 // indirect
-	gorm.io/gorm v1.23.5 // indirect
 )

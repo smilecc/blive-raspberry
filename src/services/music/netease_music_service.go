@@ -25,6 +25,13 @@ type (
 		Id  int    `json:"id"`
 		Url string `json:"url"`
 	}
+	NeteaseMusicLrc struct {
+		Code int `json:"code"`
+		Lrc  struct {
+			Version int    `json:"version"`
+			Lyric   string `json:"lyric"`
+		} `json:"lrc"`
+	}
 	NeteaseMusicSearchSong struct {
 		Id   int    `json:"id"`
 		Name string `json:"name"`
@@ -127,6 +134,20 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		return nil, err
 	}
 
+	lrcResult := &NeteaseMusicLrc{}
+	_, err = req.R().
+		SetResult(&lrcResult).
+		SetQueryParam("id", strconv.Itoa(id)).
+		SetQueryParam("cookie", n.cookie).
+		Get(fmt.Sprintf("%s/lyric", n.ApiHost))
+
+	lrc := ""
+	if lrcResult.Code == 200 {
+		lrc = lrcResult.Lrc.Lyric
+		lrcJson, _ := json.Marshal(lrcResult.Lrc)
+		log.Infof("获取到音乐歌词 Id: %d Lrc: %s", id, lrcJson)
+	}
+
 	music := result.Data[0]
 	dir := os.TempDir()
 	fileName := fmt.Sprintf("/music/%d.mp3", id)
@@ -136,6 +157,7 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 	client := req.C().SetOutputDirectory(dir)
 	_, err = client.R().SetOutputFile(fileName).Get(music.Url)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -144,5 +166,6 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		Id:        strconv.Itoa(id),
 		Url:       music.Url,
 		LocalPath: fmt.Sprintf("%s%s", dir, fileName),
+		Lrc:       lrc,
 	}, nil
 }

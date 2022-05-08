@@ -52,6 +52,10 @@ func (d *DanmuService) Start() {
 	d.listening = false
 }
 
+func (d *DanmuService) IsListening() bool {
+	return d.listening
+}
+
 func (d *DanmuService) Close() {
 	if d.listening {
 		d.blive.Close()

@@ -5,7 +5,7 @@ export const Router = createRouter({
   routes: [
     {
       path: "/",
-      component: () => import("@/views/Home.vue"),
+      component: () => import("@/views/Index.vue"),
     },
     {
       path: "/netease_config",

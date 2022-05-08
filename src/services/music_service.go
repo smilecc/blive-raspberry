@@ -9,11 +9,12 @@ import (
 )
 
 type MusicService struct {
-	musicChannel *chan string
+	musicChannel  *chan string
+	encodeChannel *chan musicFactory.SongDetail
 }
 
-func NewMusicService(musicChannel *chan string) MusicService {
-	service := MusicService{musicChannel}
+func NewMusicService(musicChannel *chan string, encodeChannel *chan musicFactory.SongDetail) MusicService {
+	service := MusicService{musicChannel, encodeChannel}
 	return service
 }
 
@@ -40,6 +41,7 @@ func (m *MusicService) Start() {
 			if songDetail != nil {
 				songJson, _ := json.Marshal(songDetail)
 				log.Infof("获取到歌曲详情：%s", songJson)
+				*m.encodeChannel <- *songDetail
 			}
 		}
 

@@ -17,6 +17,24 @@ export namespace ConfigService {
   }
 }
 
+export namespace LiveService {
+  export function getLiveState(): Response<boolean> {
+    return Request.get(`/api/live/state`);
+  }
+
+  export function startLive(roomId: number): Response<any> {
+    return Request.get(`/api/live/start`, {
+      params: {
+        roomId,
+      },
+    });
+  }
+
+  export function stopLive(): Response<any> {
+    return Request.get(`/api/live/stop`);
+  }
+}
+
 export namespace NeteaseService {
   export function sendCaptcha(host: string, phone: string): AxiosPromise {
     return Request.get(`${host}/captcha/sent`, {
@@ -35,6 +53,17 @@ export namespace NeteaseService {
       params: {
         phone,
         captcha,
+      },
+    });
+  }
+
+  export function getAccountInfo(
+    host: string,
+    cookie: string
+  ): AxiosPromise<any> {
+    return Request.get(`${host}/user/account`, {
+      params: {
+        cookie,
       },
     });
   }

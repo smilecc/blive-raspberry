@@ -16,6 +16,7 @@ const message = useMessage();
 const state = reactive({
   apiHost: "",
   cookie: "",
+  profile: null as any,
   mobile: null,
   captcha: null,
 });
@@ -26,6 +27,7 @@ onBeforeMount(() => {
   });
   ConfigService.getConfig("netease_cookie").then(({ data }) => {
     state.cookie = data.data?.value || "";
+    getNeteaseAccountInfo();
   });
 });
 
@@ -51,12 +53,25 @@ function neteaseLogin() {
       ConfigService.setConfig("netease_cookie", data.cookie);
       state.cookie = data.cookie;
       message.success("登录成功");
+      getNeteaseAccountInfo();
     })
     .catch((error) => {
       if (error.isAxiosError) {
         message.error(error.response?.data.message);
       }
     });
+}
+
+function getNeteaseAccountInfo() {
+  NeteaseService.getAccountInfo(state.apiHost, state.cookie).then(
+    ({ data }) => {
+      if (data.profile) {
+        state.profile = data.profile;
+      } else {
+        state.cookie = "";
+      }
+    }
+  );
 }
 </script>
 
@@ -70,9 +85,9 @@ function neteaseLogin() {
       </n-thing>
 
       <n-thing title="用户登录">
-        <div v-if="state.cookie" class="mb-5">
+        <div v-if="state.cookie && state.profile" class="mb-5">
           <n-alert title="网易云音乐账户已登录" type="success">
-            <!-- <n-button size="tiny">刷新</n-button> -->
+            <div>已经登录账户 {{ state.profile.nickname }}</div>
           </n-alert>
         </div>
         <n-form-item label="手机号码">

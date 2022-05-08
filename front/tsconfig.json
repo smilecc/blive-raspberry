@@ -13,6 +13,7 @@
     "lib": ["esnext", "dom"],
     "skipLibCheck": true,
     "baseUrl": ".",
+    "rootDir": ".",
     "allowSyntheticDefaultImports": true,
     "paths": {
       "@/*": ["./src/*"]
