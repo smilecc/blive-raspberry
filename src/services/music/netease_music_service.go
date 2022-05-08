@@ -135,7 +135,7 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 	dir, _ := os.UserHomeDir()
 	dir = path.Join(dir, "blive_tmp/blive_music")
 	_ = os.MkdirAll(dir, os.ModePerm)
-	fileName := fmt.Sprintf("/music/%d.mp3", id)
+	fileName := fmt.Sprintf("%s/music/%d.mp3", dir, id)
 	savePath := fmt.Sprintf("%s%s", dir, fileName)
 
 	if _, err := os.Stat(savePath); err == nil {
