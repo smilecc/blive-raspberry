@@ -107,7 +107,7 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		runtime.GOOS == "windows" {
 			command = exec.Command("cmd", "/c", shellName)
 		} else {
-			command = exec.Command("sh", "-c", shellName)
+			command = exec.Command("sh", shellName)
 		}
 
 		command.Dir = songPath
