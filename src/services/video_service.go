@@ -84,7 +84,7 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		if runtime.GOOS != "windows" {
 			shellName = "command.sh"
 		}
-		file, err := os.OpenFile(path.Join(songPath, shellName), os.O_CREATE, 0777)
+		file, err := os.OpenFile(path.Join(songPath, shellName), os.O_CREATE|os.O_RDWR, 0777)
 		if err != nil {
 			log.Error(err)
 			continue
