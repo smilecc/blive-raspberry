@@ -93,12 +93,16 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 		_ = file.Truncate(0)
 		musicDuration := getMp3Duration(song.LocalPath) + 3
 
-		_, _ = file.WriteString(
+		_, err = file.WriteString(
 			fmt.Sprintf(
 				"ffmpeg -thread_queue_size 256 -loop 1 -r 24 -t %d -f image2 -i 1.jpg -i 1.mp3 -vf ass=\"1.ass\" -s 1280x720 -pix_fmt yuvj422p -crf 28 -preset ultrafast -maxrate 2000k -bufsize 400000 -acodec aac -af \"apad=pad_dur=3\" -b:a 128k -c:v h264 -f flv output.flv -y",
 				musicDuration,
 			),
 		)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 		_ = file.Close()
 
 		// 执行渲染命令
