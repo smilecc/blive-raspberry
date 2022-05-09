@@ -2,7 +2,7 @@
   setup
   lang="ts"
 >
-import { NConfigProvider, NMessageProvider, zhCN } from "naive-ui";
+import { NConfigProvider, NMessageProvider, NNotificationProvider, zhCN } from "naive-ui";
 import { onMounted, ref } from "vue";
 import { usePlayerStore } from "./stores";
 
@@ -18,14 +18,19 @@ onMounted(() => {
 <template>
   <NConfigProvider :locale="zhCN">
     <NMessageProvider>
-      <vue-progress-bar></vue-progress-bar>
-      <router-view />
-      <audio
-        ref="audioPlayerRef"
-        class="hidden"
-        :src="playerStore.currentSong?.songUrl"
-        controls
-      ></audio>
+      <NNotificationProvider
+        :max="3"
+        placement="bottom-left"
+      >
+        <vue-progress-bar></vue-progress-bar>
+        <router-view />
+        <audio
+          ref="audioPlayerRef"
+          class="hidden"
+          :src="playerStore.currentSong?.songUrl"
+          controls
+        ></audio>
+      </NNotificationProvider>
     </NMessageProvider>
   </NConfigProvider>
 </template>

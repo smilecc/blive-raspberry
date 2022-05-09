@@ -3,13 +3,14 @@ package routers
 import (
 	"blive/src/entities"
 	"blive/src/globals"
-	"github.com/gobuffalo/packr/v2"
+	"embed"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"net/http"
 )
 
-func AppRouter(app *fiber.App) {
+func AppRouter(app *fiber.App, frontFS embed.FS) {
 	handleWebsocket(app)
 
 	app.Use(cors.New())
@@ -25,7 +26,7 @@ func AppRouter(app *fiber.App) {
 	HandleLiveRouter(&apiGroup)
 
 	app.Use(filesystem.New(filesystem.Config{
-		Root:       packr.New("Front Box", "../../front/dist"),
-		PathPrefix: "/",
+		Root:       http.FS(frontFS),
+		PathPrefix: "front/dist",
 	}))
 }

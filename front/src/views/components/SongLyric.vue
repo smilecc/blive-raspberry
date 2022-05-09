@@ -11,10 +11,9 @@
     </div>
     <div class="mt-4 flex">
       <div class="mr-2 flex text-[13px] text-gray-600">
-        专辑：<span
-          class="w-24 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap text-blue-400"
-          >{{ song.album }}</span
-        >
+        专辑：<span class="w-24 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap text-blue-400">{{
+          song.album
+        }}</span>
       </div>
       <div class="mr-1 flex text-[13px] text-gray-600">
         歌手：<span
@@ -54,7 +53,10 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script
+  lang="ts"
+  setup
+>
 import { ref, watch, computed } from "vue";
 import { formatLyric } from "@//utils";
 import { usePlayerStore } from "@/stores";
@@ -82,9 +84,7 @@ const formatedLyrics = computed(() => {
     const lyricList = formatLyric(props.lyric);
     const transLyricList = formatLyric(props.transLyric);
     return lyricList.map((item) => {
-      const findResult = transLyricList.find(
-        (transItem) => item.time === transItem.time
-      );
+      const findResult = transLyricList.find((transItem) => item.time === transItem.time);
       if (findResult) {
         return {
           ...item,
@@ -100,9 +100,7 @@ const formatedLyrics = computed(() => {
 const lyricClass = (text: string, index: number) => {
   return {
     "text-[18px] text-gray-900 font-bold":
-      currentLyricIndex.value === index - 1 &&
-      !text.includes("作词") &&
-      !text.includes("作曲"),
+      currentLyricIndex.value === index - 1 && !text.includes("作词") && !text.includes("作曲"),
   };
 };
 
@@ -112,16 +110,10 @@ watch(
     if (newTime !== oldTime) {
       /** 获取比当前播放时间大的第一个元素 */
       for (let i = 0; i < formatedLyrics.value.length; i++) {
-        if (
-          Math.floor(formatedLyrics.value[i].time) ===
-          Math.floor(playerStore.currentTime)
-        ) {
+        if (Math.floor(formatedLyrics.value[i].time) === Math.floor(playerStore.currentTime)) {
           currentLyricIndex.value = i - 1;
           break;
-        } else if (
-          Math.floor(formatedLyrics.value[i].time) >
-          Math.floor(playerStore.currentTime)
-        ) {
+        } else if (Math.floor(formatedLyrics.value[i].time) > Math.floor(playerStore.currentTime)) {
           currentLyricIndex.value = i - 2;
           break;
         }
@@ -137,6 +129,11 @@ watch(
         if (height >= 160) {
           scrollBarRef.value?.scrollTo({
             top: height - 160 + 20,
+            behavior: "smooth",
+          });
+        } else {
+          scrollBarRef.value?.scrollTo({
+            top: 0,
             behavior: "smooth",
           });
         }

@@ -6,11 +6,15 @@ import (
 	"blive/src/routers"
 	"blive/src/services"
 	"blive/src/services/music"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"log"
 )
+
+//go:embed front/dist/*
+var frontFS embed.FS
 
 func main() {
 	database.Connect()
@@ -26,9 +30,7 @@ func main() {
 	musicService := services.NewMusicService(&musicChannel, &encodeChannel)
 	go musicService.Start()
 
-	musicChannel <- services.DefaultMusic
-
-	routers.AppRouter(app)
+	routers.AppRouter(app, frontFS)
 	log.Fatal(app.Listen(":18000"))
 }
 

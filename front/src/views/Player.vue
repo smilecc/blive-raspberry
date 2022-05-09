@@ -8,12 +8,13 @@ import SongLyric from "./components/SongLyric.vue";
 import { onMounted, ref, watch, getCurrentInstance } from "vue";
 import _ from "lodash";
 import { useRouter } from "vue-router";
-import { NCard } from "naive-ui";
+import { NCard, useNotification } from "naive-ui";
 
 const instance = getCurrentInstance();
 
 const playerStore = usePlayerStore();
 const router = useRouter();
+const notification = useNotification();
 
 /**
  * 初始化音频
@@ -21,6 +22,15 @@ const router = useRouter();
 function initAudio() {
   if (playerStore.playerRef && instance) {
     const progress = instance.appContext.config.globalProperties.$Progress;
+    let isFinish = true;
+
+    playerStore.playerRef.oncanplay = () => {
+      console.log("music oncanplay");
+      if (isFinish) {
+        playerStore.playerRef?.play();
+        isFinish = false;
+      }
+    };
 
     // 监听播放进度
     playerStore.playerRef.ontimeupdate = (el) => {
@@ -38,15 +48,28 @@ function initAudio() {
       // 结束时如果没有新歌曲了 则重新播放当前音乐
       if (playerStore.musicList.length > 1) {
         playerStore.musicList.shift();
+      } else {
+        playerStore.playerRef?.play();
       }
 
-      playerStore.playerRef?.play();
+      isFinish = true;
     };
   }
 }
 
 onMounted(() => {
   initAudio();
+
+  playerStore.onDanmuCommand = (event) => {
+    if (event.commandName == "点歌") {
+      notification.success({
+        closable: false,
+        duration: 5000,
+        title: "收到点歌",
+        content: `由 [${event.senderName}] 所点的 [${event.arg1}]，请等待下载`,
+      });
+    }
+  };
 });
 </script>
 
@@ -58,8 +81,7 @@ onMounted(() => {
     <div class="flex justify-center">
       <div
         class="mr-32 flex items-center"
-        @click="() => playerStore.playerRef?.play()"
-        @dblclick="() => router.push('/')"
+        @click="() => router.push('/')"
       >
         <rotate-cover :img="playerStore.currentSong.coverImg" />
       </div>
@@ -68,10 +90,11 @@ onMounted(() => {
         :lyric="playerStore.currentSong.lyric || ''"
       />
     </div>
-    <div class="mt-10 flex h-56 justify-center">
+    <div class="mt-5 flex h-56 justify-center">
       <n-card
         title="播放列表"
         class="!w-96 !overflow-hidden"
+        @dblclick="() => playerStore.playerRef?.play()"
       >
         <div
           v-for="(song, index) in playerStore.musicList"
@@ -88,5 +111,8 @@ onMounted(() => {
         <p class="mt-2"><strong>点歌歌曲名</strong> 或 <strong>点歌歌曲名-歌手</strong></p>
       </n-card>
     </div>
+  </div>
+  <div v-else>
+    <button @click="() => router.push('/')">去配置中心</button>
   </div>
 </template>

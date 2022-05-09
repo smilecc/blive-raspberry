@@ -7,6 +7,7 @@ import { NButton, NForm, NFormItem, NInput, NInputNumber, NThing, useMessage } f
 import { ConfigService, LiveService } from "@/services";
 import { usePlayerStore } from "@/stores";
 import ConfigLayout from "@/components/ConfigLayout.vue";
+import VConsole from "vconsole";
 
 const playerStore = usePlayerStore();
 const message = useMessage();
@@ -50,11 +51,18 @@ async function stopLive() {
   await LiveService.stopLive();
   state.liveState = false;
 }
+
+function onDebug() {
+  new VConsole();
+}
 </script>
 
 <template>
   <config-layout>
-    <div class="p-5">
+    <div
+      class="p-5"
+      id="index-page"
+    >
       <n-form>
         <n-thing title="直播间设置">
           <n-form-item label="直播间ID">
@@ -80,6 +88,13 @@ async function stopLive() {
               @click="saveLiveConfig"
               class="!ml-2"
               >保存配置</n-button
+            >
+            <n-button
+              type="info"
+              secondary
+              @click="onDebug"
+              class="!ml-2"
+              >Debug</n-button
             >
           </div>
         </n-thing>

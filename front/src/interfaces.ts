@@ -72,3 +72,9 @@ export interface IWebsocketNewSong {
   albumName: string;
   albumPicUrl: string;
 }
+
+export interface IWebsocketDanmuCommand {
+  commandName: string;
+  senderName: string;
+  arg1: string;
+}
