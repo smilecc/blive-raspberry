@@ -1,37 +1,33 @@
-<script setup lang="ts">
+<script
+  setup
+  lang="ts"
+>
 import { NConfigProvider, NMessageProvider, zhCN } from "naive-ui";
-import Navbar from "@/components/Navbar.vue";
+import { onMounted, ref } from "vue";
+import { usePlayerStore } from "./stores";
+
+const playerStore = usePlayerStore();
+const audioPlayerRef = ref<HTMLAudioElement>();
+
+onMounted(() => {
+  playerStore.playerRef = audioPlayerRef.value;
+  playerStore.connectWebsocket();
+});
 </script>
 
 <template>
   <NConfigProvider :locale="zhCN">
     <NMessageProvider>
-      <div
-        class="dark:bg-dark-background relative flex h-full flex-row bg-white text-xl text-black dark:text-white"
-      >
-        <Navbar />
-        <main class="min-h-screen flex-grow bg-gray-50">
-          <div className="flex flex-shrink">
-            <div className="w-full sm:w-main pb-20 sm:pb-0">
-              <router-view />
-            </div>
-            <div className="hidden xl:block w-right-bar"></div>
-          </div>
-        </main>
-      </div>
+      <vue-progress-bar></vue-progress-bar>
+      <router-view />
+      <audio
+        ref="audioPlayerRef"
+        class="hidden"
+        :src="playerStore.currentSong?.songUrl"
+        controls
+      ></audio>
     </NMessageProvider>
   </NConfigProvider>
 </template>
 
-<style scoped>
-.content {
-  width: 860px;
-  margin: 0 auto;
-}
-</style>
-
-<style>
-.n-thing-header__title {
-  font-weight: bold !important;
-}
-</style>
+<style scoped></style>

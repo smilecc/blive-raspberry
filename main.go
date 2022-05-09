@@ -2,6 +2,7 @@ package main
 
 import (
 	"blive/src/database"
+	"blive/src/globals"
 	"blive/src/routers"
 	"blive/src/services"
 	"blive/src/services/music"
@@ -20,16 +21,11 @@ func main() {
 	handleCommand(&danmuChannel, &musicChannel)
 
 	danmuService := services.NewDanmuService(&danmuChannel)
-	services.CurrentDanmuService = &danmuService
-
-	videoService := services.NewVideoService()
-	services.CurrentVideoService = &videoService
+	globals.DanmuService = &danmuService
 
 	musicService := services.NewMusicService(&musicChannel, &encodeChannel)
 	go musicService.Start()
-	go services.StartEncode(&encodeChannel)
 
-	// 一首构建默认歌曲
 	musicChannel <- services.DefaultMusic
 
 	routers.AppRouter(app)
@@ -50,6 +46,8 @@ func handleCommand(danmuChannel *chan services.DanmuCommand, musicChannel *chan 
 			if command.CommandName == "点歌" {
 				*musicChannel <- command.Arg1
 			}
+
+			routers.SendWebsocketBroadcast(routers.WebsocketMessage[services.DanmuCommand]{"danmu_command", command})
 		}
 	}()
 }

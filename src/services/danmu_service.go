@@ -10,7 +10,6 @@ import (
 )
 
 var wg sync.WaitGroup
-var CurrentDanmuService *DanmuService
 
 type DanmuService struct {
 	RoomId       int
@@ -20,12 +19,12 @@ type DanmuService struct {
 }
 
 type DanmuCommand struct {
-	SenderId    int
-	SenderName  string
-	CommandName string
-	SourceDanmu string
-	Arg1        string
-	Args        []string
+	SenderId    int      `json:"senderId"`
+	SenderName  string   `json:"senderName"`
+	CommandName string   `json:"commandName"`
+	SourceDanmu string   `json:"sourceDanmu"`
+	Arg1        string   `json:"arg1"`
+	Args        []string `json:"args"`
 }
 
 func NewDanmuService(danmuChannel *chan DanmuCommand) DanmuService {
@@ -64,17 +63,29 @@ func (d *DanmuService) Close() {
 	}
 }
 
+func (d *DanmuService) GetRoomId() int {
+	return d.RoomId
+}
+
+func (d *DanmuService) SetRoomId(roomId int) {
+	d.RoomId = roomId
+}
+
 func danmuHandler(danmuChannel *chan DanmuCommand) websocket.DanmakuHandler {
 	return func(danmu *dto.Danmaku) {
-		danmuCommandStrings := strings.Split(strings.Trim(danmu.Content, " "), " ")
-		if len(danmuCommandStrings) >= 2 {
-			*danmuChannel <- DanmuCommand{
-				SenderId:    danmu.UID,
-				SenderName:  danmu.Uname,
-				SourceDanmu: danmu.Content,
-				CommandName: strings.Trim(danmuCommandStrings[0], " "),
-				Arg1:        strings.Trim(danmuCommandStrings[1], " "),
-				Args:        danmuCommandStrings[1:],
+		commands := []string{"点歌"}
+
+		danmuContent := strings.Trim(danmu.Content, " ")
+		for _, command := range commands {
+			if strings.HasPrefix(danmu.Content, command) {
+				arg := strings.Trim(strings.TrimPrefix(danmu.Content, command), " ")
+				*danmuChannel <- DanmuCommand{
+					SenderId:    danmu.UID,
+					SenderName:  danmu.Uname,
+					SourceDanmu: danmuContent,
+					CommandName: command,
+					Arg1:        arg,
+				}
 			}
 		}
 

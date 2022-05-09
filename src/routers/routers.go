@@ -2,6 +2,7 @@ package routers
 
 import (
 	"blive/src/entities"
+	"blive/src/globals"
 	"github.com/gobuffalo/packr/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -9,8 +10,12 @@ import (
 )
 
 func AppRouter(app *fiber.App) {
+	handleWebsocket(app)
+
+	app.Use(cors.New())
+	app.Static("/music", globals.GetMusicDir())
+
 	apiGroup := app.Group("/api")
-	apiGroup.Use(cors.New())
 
 	apiGroup.Get("/", func(ctx *fiber.Ctx) error {
 		return ctx.JSON(entities.SuccessResult("hello world"))

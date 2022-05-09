@@ -2,6 +2,7 @@ package music
 
 import (
 	"blive/src/database"
+	"blive/src/globals"
 	"encoding/json"
 	"fmt"
 	"github.com/botplayerneo/bili-live-api/log"
@@ -34,12 +35,40 @@ type (
 		} `json:"lrc"`
 	}
 	NeteaseMusicSearchSong struct {
-		Id   int    `json:"id"`
-		Name string `json:"name"`
+		Id       int    `json:"id"`
+		Name     string `json:"name"`
+		Duration int    `json:"duration"`
+		Artists  []struct {
+			Id   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"artists"`
+		Album struct {
+			Id        int    `json:"id"`
+			Name      string `json:"name"`
+			Img1v1Url string `json:"img1V1Url"`
+		} `json:"album"`
+	}
+	NeteaseMusicCloudSearchSong struct {
+		Id       int    `json:"id"`
+		Name     string `json:"name"`
+		Duration int    `json:"dt"`
+		Artists  []struct {
+			Id   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"ar"`
+		Album struct {
+			Id     int    `json:"id"`
+			Name   string `json:"name"`
+			PicUrl string `json:"picUrl"`
+		} `json:"al"`
 	}
 	NeteaseMusicSearch struct {
 		SongCount int                      `json:"songCount"`
 		Songs     []NeteaseMusicSearchSong `json:"songs"`
+	}
+	NeteaseMusicCloudSearch struct {
+		SongCount int                           `json:"songCount"`
+		Songs     []NeteaseMusicCloudSearchSong `json:"songs"`
 	}
 )
 
@@ -90,13 +119,13 @@ func (n *NeteaseMusicService) getMusic(name string) (*SongDetail, error) {
 }
 
 //searchMusic 通过关键词搜索音乐
-func (n *NeteaseMusicService) searchMusic(keyword string) *NeteaseMusicData[NeteaseMusicSearch] {
-	result := &NeteaseMusicData[NeteaseMusicSearch]{}
+func (n *NeteaseMusicService) searchMusic(keyword string) *NeteaseMusicData[NeteaseMusicCloudSearch] {
+	result := &NeteaseMusicData[NeteaseMusicCloudSearch]{}
 	resp, err := req.R().
 		SetResult(&result).
 		SetQueryParam("cookie", n.cookie).
 		SetQueryParam("keywords", keyword).
-		Get(fmt.Sprintf("%s/search", n.ApiHost))
+		Get(fmt.Sprintf("%s/cloudsearch", n.ApiHost))
 
 	if err != nil && resp != nil {
 		return nil
@@ -108,7 +137,7 @@ func (n *NeteaseMusicService) searchMusic(keyword string) *NeteaseMusicData[Nete
 }
 
 //getMusicById 通过ID查询音乐
-func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearchSong) (*SongDetail, error) {
+func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicCloudSearchSong) (*SongDetail, error) {
 	// 如果没有查询过音乐 则先查询
 	if searchSong == nil {
 		searchResult := n.searchMusic(strconv.Itoa(id))
@@ -119,7 +148,7 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 
 	// 查询歌词
 	lrcResult := &NeteaseMusicLrc{}
-	_, err := req.R().
+	_, _ = req.R().
 		SetResult(&lrcResult).
 		SetQueryParam("id", strconv.Itoa(id)).
 		SetQueryParam("cookie", n.cookie).
@@ -132,56 +161,63 @@ func (n *NeteaseMusicService) getMusicById(id int, searchSong *NeteaseMusicSearc
 		log.Infof("获取到音乐歌词 Id: %d Lrc: %s", id, lrcJson)
 	}
 
-	dir, _ := os.UserHomeDir()
-	dir = path.Join(dir, "blive_tmp/blive_music")
+	dir := globals.GetMusicDir()
 	_ = os.MkdirAll(dir, os.ModePerm)
 	fileName := fmt.Sprintf("%d.mp3", id)
 	savePath := path.Join(dir, "/", fileName)
+	musicUrl := ""
 
 	if _, err := os.Stat(savePath); err == nil {
 		log.Infof("歌曲存在跳过下载 Id: %d", id)
-		return &SongDetail{
-			Id:        strconv.Itoa(id),
-			Url:       "",
-			LocalPath: savePath,
-			Lrc:       lrc,
-		}, nil
+	} else {
+		// 通过ID查询音乐链接
+		result := &NeteaseMusicData[[]NeteaseMusicSong]{}
+		_, err = req.R().
+			SetResult(&result).
+			SetQueryParam("id", strconv.Itoa(id)).
+			SetQueryParam("br", "320000").
+			SetQueryParam("cookie", n.cookie).
+			Get(fmt.Sprintf("%s/song/url", n.ApiHost))
+		if err != nil {
+			return nil, err
+		}
+
+		listJson, _ := json.Marshal(result.Data)
+		log.Infof("获取到音乐信息 Id: %d 列表信息: %s", id, listJson)
+		if len(result.Data) == 0 {
+			return nil, err
+		}
+
+		music := result.Data[0]
+
+		log.Infof("开始下载音乐 Id: %d Path: %s", id, savePath)
+		// 下载音乐文件
+		client := req.C().SetOutputDirectory(dir)
+		_, err = client.R().SetOutputFile(savePath).Get(music.Url)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+
+		log.Infof("音乐下载完毕 Id: %d", id)
+		musicUrl = music.Url
 	}
 
-	// 通过ID查询音乐链接
-	result := &NeteaseMusicData[[]NeteaseMusicSong]{}
-	_, err = req.R().
-		SetResult(&result).
-		SetQueryParam("id", strconv.Itoa(id)).
-		SetQueryParam("br", "320000").
-		SetQueryParam("cookie", n.cookie).
-		Get(fmt.Sprintf("%s/song/url", n.ApiHost))
-	if err != nil {
-		return nil, err
+	singer := ""
+	if len(searchSong.Artists) > 0 {
+		singer = searchSong.Artists[0].Name
 	}
 
-	listJson, _ := json.Marshal(result.Data)
-	log.Infof("获取到音乐信息 Id: %d 列表信息: %s", id, listJson)
-	if len(result.Data) == 0 {
-		return nil, err
-	}
-
-	music := result.Data[0]
-
-	log.Infof("开始下载音乐 Id: %d Path: %s", id, savePath)
-	// 下载音乐文件
-	client := req.C().SetOutputDirectory(dir)
-	_, err = client.R().SetOutputFile(savePath).Get(music.Url)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
-	log.Infof("音乐下载完毕 Id: %d", id)
 	return &SongDetail{
-		Id:        strconv.Itoa(id),
-		Url:       music.Url,
-		LocalPath: savePath,
-		Lrc:       lrc,
+		Id:          strconv.Itoa(id),
+		Name:        searchSong.Name,
+		Url:         musicUrl,
+		LocalPath:   savePath,
+		Lrc:         lrc,
+		FileName:    fileName,
+		Duration:    searchSong.Duration,
+		SingerName:  singer,
+		AlbumName:   searchSong.Album.Name,
+		AlbumPicUrl: searchSong.Album.PicUrl,
 	}, nil
 }

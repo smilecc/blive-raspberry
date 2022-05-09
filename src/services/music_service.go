@@ -1,6 +1,7 @@
 package services
 
 import (
+	"blive/src/routers"
 	musicFactory "blive/src/services/music"
 	"encoding/json"
 	"fmt"
@@ -42,6 +43,7 @@ func (m *MusicService) Start() {
 				songJson, _ := json.Marshal(songDetail)
 				log.Infof("获取到歌曲详情：%s", songJson)
 				*m.encodeChannel <- *songDetail
+				routers.SendWebsocketBroadcast(routers.WebsocketMessage[musicFactory.SongDetail]{"new_song", *songDetail})
 			}
 		}
 

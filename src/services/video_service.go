@@ -3,6 +3,7 @@ package services
 import (
 	"blive/src/database"
 	"blive/src/entities"
+	"blive/src/globals"
 	"blive/src/services/music"
 	"blive/src/utils"
 	"encoding/json"
@@ -19,9 +20,8 @@ import (
 	"runtime"
 )
 
-var CurrentVideoService *VideoService
 var ch chan string
-var DefaultMusic string = "1937717747"
+var DefaultMusic = "1937717747"
 var defaultMusicVideoPath string
 
 func getMp3Duration(filename string) int {
@@ -95,7 +95,7 @@ func StartEncode(encodeChannel *chan music.SongDetail) {
 
 		_, err = file.WriteString(
 			fmt.Sprintf(
-				"ffmpeg -thread_queue_size 256 -loop 1 -r 24 -t %d -f image2 -i 1.jpg -i 1.mp3 -vf ass=\"1.ass\" -s 1280x720 -pix_fmt yuvj422p -crf 28 -preset ultrafast -maxrate 2000k -bufsize 400000 -acodec aac -af \"apad=pad_dur=3\" -b:a 128k -c:v h264 -f flv output.flv -y",
+				"ffmpeg -thread_queue_size 256 -loop 1 -r 21 -t %d -f image2 -i 1.jpg -i 1.mp3 -vf ass=\"1.ass\" -s 1280x720 -pix_fmt yuvj422p -crf 28 -preset ultrafast -maxrate 2000k -bufsize 400000 -acodec aac -af \"apad=pad_dur=3\" -b:a 128k -c:v h264 -f flv output.flv -y",
 				musicDuration,
 			),
 		)
@@ -186,33 +186,22 @@ func (v *VideoService) StartLiveStream() {
 				return false
 			}
 
-			if !CurrentDanmuService.listening {
+			if !globals.DanmuService.IsListening() {
 				return true
 			}
 			return true
 		}, func() *[]httpflv.Tag {
-			if len(currentTags) == 0 {
+			lens := len(currentTags)
+			if lens == 0 {
 				return &defaultTags
 			}
 
-			return currentTags[0]
+			go func() {
+				currentTags = currentTags[:lens-1]
+			}()
+			return currentTags[lens-1]
 		})
 	}()
-
-	//go func() {
-	//	for {
-	//		if currentTags != nil {
-	//			continue
-	//		}
-	//
-	//		tags := <-tagChan
-	//		currentTags = &tags
-	//
-	//		if !CurrentDanmuService.listening {
-	//			break
-	//		}
-	//	}
-	//}()
 
 	_ = <-v.ps.WaitChan()
 }

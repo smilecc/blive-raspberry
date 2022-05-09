@@ -2,11 +2,16 @@ package music
 
 type (
 	SongDetail struct {
-		Id        string
-		Name      string
-		Url       string
-		LocalPath string
-		Lrc       string
+		Id          string `json:"id"`
+		Name        string `json:"name"`
+		FileName    string `json:"fileName"`
+		Url         string `json:"url"`
+		LocalPath   string `json:"localPath"`
+		Lrc         string `json:"lrc"`
+		SingerName  string `json:"singerName"`
+		Duration    int    `json:"duration"`
+		AlbumName   string `json:"albumName"`
+		AlbumPicUrl string `json:"albumPicUrl"`
 	}
 )
 

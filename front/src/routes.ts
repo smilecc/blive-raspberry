@@ -11,5 +11,9 @@ export const Router = createRouter({
       path: "/netease_config",
       component: () => import("@/views/NeteaseConfig.vue"),
     },
+    {
+      path: "/player",
+      component: () => import("@/views/Player.vue"),
+    },
   ],
 });

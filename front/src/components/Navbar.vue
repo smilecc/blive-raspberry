@@ -8,6 +8,10 @@ const Routes = [
     title: "网易云配置",
     path: "/netease_config",
   },
+  {
+    title: "→ 播放器",
+    path: "/player",
+  },
 ];
 </script>
 
@@ -19,7 +23,7 @@ const Routes = [
       class="fixed bottom-0 z-20 flex w-screen justify-around border-t bg-white sm:fixed sm:top-0 sm:w-left-bar-m sm:flex-col sm:justify-start sm:border-t-0 xl:w-left-bar"
     >
       <h1 class="mt-4 mb-8 hidden text-3xl font-bold dark:text-white sm:block">
-        直播点歌台
+        应用配置
       </h1>
       <router-link
         v-for="item in Routes"

@@ -3,6 +3,9 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      animation: {
+        "spin-30": "spin 30s linear infinite",
+      },
       width: {
         "right-bar": "350px",
         "left-bar": "275px",
